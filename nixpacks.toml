@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["chromium"]
+
+[phases.install]
+cmds = [
+  "npm ci",
+  "npx playwright install-deps chromium",
+]
+
+[start]
+cmd = "npm run db:migrate && npm start"
