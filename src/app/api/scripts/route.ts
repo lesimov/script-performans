@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   }
 
   const existing = await queryOne<Script>(
-    "SELECT id FROM scripts WHERE slug = ?",
+    "SELECT id FROM scripts WHERE slug = $1",
     [slug]
   );
   if (existing) {
@@ -31,15 +31,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  await query(
-    `INSERT INTO scripts (name, slug, url)
-     VALUES (?, ?, ?)`,
-    [name, slug, url]
-  );
-
   const script = await queryOne<Script>(
-    "SELECT * FROM scripts WHERE slug = ?",
-    [slug]
+    `INSERT INTO scripts (name, slug, url)
+     VALUES ($1, $2, $3)
+     RETURNING *`,
+    [name, slug, url]
   );
 
   return NextResponse.json(script, { status: 201 });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { query, queryOne } from "@/lib/db";
+import { queryOne } from "@/lib/db";
 import { Script } from "@/lib/types";
 
 export async function DELETE(
@@ -11,14 +11,14 @@ export async function DELETE(
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
 
-  const existing = await queryOne<Script>(
-    "SELECT id, name, slug FROM scripts WHERE id = ?",
+  const deleted = await queryOne<Script>(
+    "DELETE FROM scripts WHERE id = $1 RETURNING *",
     [id]
   );
-  if (!existing) {
+
+  if (!deleted) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  await query("DELETE FROM scripts WHERE id = ?", [id]);
-  return NextResponse.json({ deleted: existing });
+  return NextResponse.json({ deleted });
 }

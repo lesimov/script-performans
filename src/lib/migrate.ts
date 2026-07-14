@@ -2,22 +2,22 @@ import { query } from "./db";
 
 const MIGRATIONS = [
   `CREATE TABLE IF NOT EXISTS scripts (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) NOT NULL UNIQUE,
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
     url TEXT NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT NOW(),
-    updated_at DATETIME NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`,
   `CREATE TABLE IF NOT EXISTS snapshots (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    script_id INT NOT NULL,
+    id SERIAL PRIMARY KEY,
+    script_id INTEGER NOT NULL REFERENCES scripts(id) ON DELETE CASCADE,
     date DATE NOT NULL,
-    raw_data JSON NOT NULL DEFAULT ('{}'),
-    created_at DATETIME NOT NULL DEFAULT NOW(),
-    UNIQUE KEY uq_script_date (script_id, date),
-    FOREIGN KEY (script_id) REFERENCES scripts(id) ON DELETE CASCADE
+    raw_data JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(script_id, date)
   )`,
+  `CREATE INDEX IF NOT EXISTS idx_snapshots_script_date ON snapshots(script_id, date)`,
 ];
 
 async function migrate() {

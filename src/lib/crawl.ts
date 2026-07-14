@@ -88,14 +88,10 @@ export async function crawlScript(script: Script): Promise<CrawlResult> {
 export async function saveSnapshot(result: CrawlResult): Promise<void> {
   await query(
     `INSERT INTO snapshots (script_id, date, raw_data)
-     VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE raw_data = ?, created_at = NOW()`,
-    [
-      result.script_id,
-      result.date,
-      JSON.stringify(result.raw_data),
-      JSON.stringify(result.raw_data),
-    ]
+     VALUES ($1, $2, $3)
+     ON CONFLICT (script_id, date)
+     DO UPDATE SET raw_data = $3, created_at = NOW()`,
+    [result.script_id, result.date, JSON.stringify(result.raw_data)]
   );
 }
 
