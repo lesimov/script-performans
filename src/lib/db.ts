@@ -1,11 +1,16 @@
 import { Pool } from "pg";
 
+const dbUrl = process.env.DATABASE_URL;
+if (!dbUrl) {
+  console.error("DATABASE_URL is not set!");
+}
+
+const isRemote =
+  !!dbUrl && !dbUrl.includes("localhost") && !dbUrl.includes("127.0.0.1");
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false,
+  connectionString: dbUrl,
+  ssl: isRemote ? { rejectUnauthorized: false } : false,
 });
 
 pool.on("error", (err) => {
