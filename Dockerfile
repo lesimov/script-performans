@@ -29,6 +29,8 @@ RUN npm run build
 
 ENV NODE_ENV=production
 
+RUN chmod +x /app/start.sh
+
 EXPOSE 3000
 
-CMD ["sh", "-c", "npm run db:migrate && node_modules/.bin/next start -H 0.0.0.0 -p ${PORT:-3000}"]
+CMD ["/app/start.sh"]
