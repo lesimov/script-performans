@@ -29,6 +29,6 @@ RUN npm run build
 
 ENV NODE_ENV=production
 
-EXPOSE ${PORT:-3000}
+EXPOSE 3000
 
-CMD ["sh", "-c", "echo 'DB migrate starting...' && npm run db:migrate && echo 'Starting Next.js on port ${PORT:-3000}...' && npm start -- -p ${PORT:-3000}"]
+CMD ["sh", "-c", "npm run db:migrate && node_modules/.bin/next start -H 0.0.0.0 -p ${PORT:-3000}"]
