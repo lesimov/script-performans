@@ -20,16 +20,54 @@ const MIGRATIONS = [
   `CREATE INDEX IF NOT EXISTS idx_snapshots_script_date ON snapshots(script_id, date)`,
 ];
 
-async function migrate() {
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function migrateOnce() {
   console.log("Running migrations...");
   for (const sql of MIGRATIONS) {
     await query(sql);
-    console.log("  OK:", sql.slice(0, 60).replace(/\s+/g, " ") + "...");
+    console.log(
+      "  OK:",
+      sql.slice(0, 60).replace(/\s+/g, " ") + "..."
+    );
   }
   console.log("Migrations complete.");
 }
 
-migrate()
+async function migrateWithRetry() {
+  const maxAttempts = parseInt(
+    process.env.MIGRATE_MAX_ATTEMPTS || "8",
+    10
+  );
+  const baseDelayMs = parseInt(
+    process.env.MIGRATE_RETRY_DELAY_MS || "2000",
+    10
+  );
+
+  let attempt = 0;
+  // DB bazen ilk saniyelerde hazır olmuyor (Railway init). Retry ile ayağa kalkmayı bekliyoruz.
+  // Verilen limit aşılıyorsa deploy yine loglarla patlar.
+  while (true) {
+    attempt++;
+    try {
+      console.log(`Migration attempt ${attempt}/${maxAttempts}`);
+      await migrateOnce();
+      return;
+    } catch (err) {
+      if (attempt >= maxAttempts) throw err;
+      const delay = baseDelayMs * attempt;
+      console.error(
+        `Migration failed (attempt ${attempt}). Retrying in ${delay}ms...`
+      );
+      console.error(err);
+      await sleep(delay);
+    }
+  }
+}
+
+migrateWithRetry()
   .then(() => process.exit(0))
   .catch((err) => {
     console.error("Migration failed:", err);
