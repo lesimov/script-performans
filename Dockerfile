@@ -15,18 +15,19 @@ RUN apt-get update && apt-get install -y \
   --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
-ENV NODE_ENV=production
 ENV PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --include=dev
 
 COPY . .
 
 RUN npm run build
+
+ENV NODE_ENV=production
 
 EXPOSE 3000
 
