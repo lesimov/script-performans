@@ -28,6 +28,44 @@ const MIGRATIONS = [
     name: "create_snapshots_script_date_index",
     sql: `CREATE INDEX IF NOT EXISTS idx_snapshots_script_date ON snapshots(script_id, date)`,
   },
+  {
+    name: "add_script_classification_columns",
+    sql: `ALTER TABLE scripts ADD COLUMN IF NOT EXISTS script_type TEXT;
+      ALTER TABLE scripts ADD COLUMN IF NOT EXISTS is_active BOOLEAN;
+      UPDATE scripts SET script_type = 'owned' WHERE script_type IS NULL;
+      UPDATE scripts SET is_active = TRUE WHERE is_active IS NULL;
+      ALTER TABLE scripts ALTER COLUMN script_type SET DEFAULT 'owned';
+      ALTER TABLE scripts ALTER COLUMN script_type SET NOT NULL;
+      ALTER TABLE scripts ALTER COLUMN is_active SET DEFAULT TRUE;
+      ALTER TABLE scripts ALTER COLUMN is_active SET NOT NULL`,
+  },
+  {
+    name: "add_scripts_script_type_check",
+    sql: `DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM pg_constraint
+          WHERE conname = 'scripts_script_type_check'
+            AND conrelid = 'scripts'::regclass
+        ) THEN
+          ALTER TABLE scripts
+            ADD CONSTRAINT scripts_script_type_check
+            CHECK (script_type IN ('owned', 'competitor'));
+        END IF;
+      END
+      $$`,
+  },
+  {
+    name: "create_scripts_type_active_index",
+    sql: `CREATE INDEX IF NOT EXISTS idx_scripts_type_active
+      ON scripts(script_type, is_active)`,
+  },
+  {
+    name: "create_snapshots_script_date_desc_index",
+    sql: `CREATE INDEX IF NOT EXISTS idx_snapshots_script_date_desc
+      ON snapshots(script_id, date DESC)`,
+  },
 ] as const;
 
 function readPositiveInteger(name: string, fallback: number) {

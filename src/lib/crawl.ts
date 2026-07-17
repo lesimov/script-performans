@@ -1,5 +1,5 @@
 import { chromium, Browser } from "playwright";
-import { Script, CrawlData, CrawlResult } from "./types";
+import { isAllowedScriptUrl, Script, CrawlData, CrawlResult } from "./types";
 import { query } from "./db";
 
 let browser: Browser | null = null;
@@ -43,6 +43,9 @@ export function parseMetricsFromHtml(
 
 
 export async function crawlScript(script: Script): Promise<CrawlResult> {
+  if (!isAllowedScriptUrl(script.url)) {
+    throw new Error("Script URL is not an allowed 5metrics.dev page");
+  }
   const b = await getBrowser();
   const page = await b.newPage();
   const raw_data: CrawlData = {
@@ -94,12 +97,23 @@ export async function saveSnapshot(result: CrawlResult): Promise<void> {
   );
 }
 
-export async function crawlAll(): Promise<{
+export async function crawlAll(scriptIds?: number[]): Promise<{
   success: number;
   failed: number;
   errors: string[];
 }> {
-  const scripts = await query<Script>("SELECT * FROM scripts ORDER BY id");
+  const params = scriptIds ? [scriptIds] : [];
+  const filter = scriptIds ? " AND id = ANY($1::int[])" : "";
+  const scripts = await query<Script>(
+    `SELECT * FROM scripts
+     WHERE is_active = TRUE${filter}
+     ORDER BY id`,
+    params
+  );
+
+  if (scriptIds && scripts.length !== new Set(scriptIds).size) {
+    throw new Error("One or more selected scripts are missing or inactive");
+  }
   let success = 0;
   let failed = 0;
   const errors: string[] = [];
