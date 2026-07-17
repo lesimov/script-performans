@@ -1,6 +1,6 @@
 "use client";
 
-import { Snapshot } from "@/lib/types";
+import { CRAWL_METRICS, Snapshot } from "@/lib/types";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -25,12 +25,8 @@ ChartJS.register(
   Filler
 );
 
-function extractMetrics(snapshots: Snapshot[]): string[] {
-  const keys = new Set<string>();
-  for (const s of snapshots) {
-    Object.keys(s.raw_data).forEach((k) => keys.add(k));
-  }
-  return Array.from(keys);
+function extractMetrics(): string[] {
+  return [...CRAWL_METRICS];
 }
 
 const COLORS = ["#10b981", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6"];
@@ -54,7 +50,7 @@ export default function PerformanceChart({
     (a, b) => a.date.localeCompare(b.date)
   );
   const labels = sorted.map((s) => s.date.slice(5));
-  const metrics = extractMetrics(snapshots);
+  const metrics = extractMetrics();
 
   const datasets = metrics.map((metric, i) => ({
     label: metric,

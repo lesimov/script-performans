@@ -1,6 +1,6 @@
 "use client";
 
-import { Snapshot } from "@/lib/types";
+import { CRAWL_METRICS, Snapshot } from "@/lib/types";
 
 export default function SnapshotTable({
   snapshots,
@@ -17,9 +17,7 @@ export default function SnapshotTable({
     (a, b) => b.date.localeCompare(a.date)
   );
 
-  const metricKeys = new Set<string>();
-  sorted.forEach((s) => Object.keys(s.raw_data).forEach((k) => metricKeys.add(k)));
-  const columns = Array.from(metricKeys);
+  const columns = [...CRAWL_METRICS];
 
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-800 bg-gray-900/50">

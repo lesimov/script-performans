@@ -22,32 +22,34 @@ export async function shutdownBrowser() {
   }
 }
 
-const SELECTORS: Record<string, string> = {
-  players: ".stat-value",
-  servers: ".server-count",
-  resources: ".resource-count",
-};
+const METRIC_PAIR_PATTERN =
+  /\\?"servers\\?"\s*:\s*(\d+)\s*,\s*\\?"players\\?"\s*:\s*(\d+)/;
 
-const METRIC_PATTERNS: Record<string, RegExp> = {
-  players: /(\d+)\s*players?/i,
-  servers: /(\d+)\s*servers?/i,
-  resources: /(\d+)\s*resources?/i,
-  download: /(\d+)\s*(downloads?|indirme)/i,
-};
+export function parseMetricsFromHtml(
+  html: string
+): Record<string, number | null> {
+  const result: Record<string, number | null> = {
+    players: null,
+    servers: null,
+  };
+  const match = html.match(METRIC_PAIR_PATTERN);
 
-export function parseMetric(text: string): Record<string, number | null> {
-  const result: Record<string, number | null> = {};
-  for (const [key, pattern] of Object.entries(METRIC_PATTERNS)) {
-    const match = text.match(pattern);
-    result[key] = match ? parseInt(match[1], 10) : null;
-  }
+  if (!match) return result;
+
+  result.servers = Number(match[1]);
+  result.players = Number(match[2]);
   return result;
 }
+
+
 
 export async function crawlScript(script: Script): Promise<CrawlResult> {
   const b = await getBrowser();
   const page = await b.newPage();
-  const raw_data: Record<string, number | null> = {};
+  const raw_data: Record<string, number | null> = {
+    players: null,
+    servers: null,
+  };
 
   try {
     await page.goto(script.url, {
@@ -55,25 +57,8 @@ export async function crawlScript(script: Script): Promise<CrawlResult> {
       timeout: 30000,
     });
 
-    const $body = await page.evaluate(() => document.body.innerText);
-
-    const parsed = parseMetric($body);
-    Object.assign(raw_data, parsed);
-
-    if (Object.values(parsed).every((v) => v === null)) {
-      for (const [key, selector] of Object.entries(SELECTORS)) {
-        try {
-          const el = await page.$(selector);
-          if (el) {
-            const text = await el.innerText();
-            const num = parseInt(text.replace(/[^0-9]/g, ""), 10);
-            raw_data[key] = isNaN(num) ? null : num;
-          }
-        } catch {
-          raw_data[key] = null;
-        }
-      }
-    }
+    const html = await page.content();
+    Object.assign(raw_data, parseMetricsFromHtml(html));
   } catch (err) {
     console.error(`Crawl failed for "${script.name}":`, err);
   } finally {

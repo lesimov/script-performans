@@ -1,3 +1,6 @@
+export const CRAWL_METRICS = ["players", "servers"] as const;
+export type CrawlMetric = (typeof CRAWL_METRICS)[number];
+
 export interface Script {
   id: number;
   name: string;
