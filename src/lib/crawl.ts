@@ -6,7 +6,11 @@ let browser: Browser | null = null;
 
 async function getBrowser(): Promise<Browser> {
   if (!browser || !browser.isConnected()) {
-    browser = await chromium.launch({ headless: true });
+    const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
+    browser = await chromium.launch({
+      headless: true,
+      ...(executablePath ? { executablePath } : {}),
+    });
   }
   return browser;
 }

@@ -31,4 +31,4 @@ ENV NODE_ENV=production
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "echo 'PORT='$PORT 'NODE_ENV='$NODE_ENV && npm run db:migrate && node node_modules/next/dist/bin/next start -H 0.0.0.0 -p ${PORT:-3000}"]
+CMD ["npm", "start"]
