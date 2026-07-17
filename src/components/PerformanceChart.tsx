@@ -1,6 +1,6 @@
 "use client";
 
-import { CRAWL_METRICS, Snapshot } from "@/lib/types";
+import { CRAWL_METRICS, CrawlMetric, Snapshot } from "@/lib/types";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -25,7 +25,7 @@ ChartJS.register(
   Filler
 );
 
-function extractMetrics(): string[] {
+function extractMetrics(): CrawlMetric[] {
   return [...CRAWL_METRICS];
 }
 

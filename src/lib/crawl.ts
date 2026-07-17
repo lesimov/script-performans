@@ -1,5 +1,5 @@
 import { chromium, Browser } from "playwright";
-import { Script, CrawlResult } from "./types";
+import { Script, CrawlData, CrawlResult } from "./types";
 import { query } from "./db";
 
 let browser: Browser | null = null;
@@ -22,22 +22,21 @@ export async function shutdownBrowser() {
   }
 }
 
-const METRIC_PAIR_PATTERN =
-  /\\?"servers\\?"\s*:\s*(\d+)\s*,\s*\\?"players\\?"\s*:\s*(\d+)/;
 
 export function parseMetricsFromHtml(
   html: string
-): Record<string, number | null> {
-  const result: Record<string, number | null> = {
-    players: null,
-    servers: null,
+): CrawlData {
+  const serverMatch = html.match(
+    /\\?"servers\\?"\s*:\s*(\d+)/
+  );
+  const playerMatch = html.match(
+    /\\?"players\\?"\s*:\s*(\d+)/
+  );
+  const result: CrawlData = {
+    players: playerMatch ? Number(playerMatch[1]) : null,
+    servers: serverMatch ? Number(serverMatch[1]) : null,
   };
-  const match = html.match(METRIC_PAIR_PATTERN);
 
-  if (!match) return result;
-
-  result.servers = Number(match[1]);
-  result.players = Number(match[2]);
   return result;
 }
 
@@ -46,10 +45,12 @@ export function parseMetricsFromHtml(
 export async function crawlScript(script: Script): Promise<CrawlResult> {
   const b = await getBrowser();
   const page = await b.newPage();
-  const raw_data: Record<string, number | null> = {
+  const raw_data: CrawlData = {
     players: null,
     servers: null,
   };
+
+  let crawlError: unknown;
 
   try {
     await page.goto(script.url, {
@@ -59,10 +60,19 @@ export async function crawlScript(script: Script): Promise<CrawlResult> {
 
     const html = await page.content();
     Object.assign(raw_data, parseMetricsFromHtml(html));
+
+    if (raw_data.players === null || raw_data.servers === null) {
+      throw new Error("Required players or servers metric not found");
+    }
   } catch (err) {
+    crawlError = err;
     console.error(`Crawl failed for "${script.name}":`, err);
   } finally {
     await page.close();
+  }
+
+  if (crawlError) {
+    throw crawlError;
   }
 
   const today = new Date().toISOString().slice(0, 10);

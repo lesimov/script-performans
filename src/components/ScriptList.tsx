@@ -1,4 +1,4 @@
-import { Script as ScriptType, Snapshot } from "@/lib/types";
+import { CRAWL_METRICS, Script as ScriptType, Snapshot } from "@/lib/types";
 
 export default function ScriptList({
   scripts,
@@ -91,7 +91,10 @@ export default function ScriptList({
                   </span>
                   {last && (
                     <span className="ml-3 font-mono text-xs text-emerald-400">
-                      Last: {JSON.stringify(last.raw_data)}
+                      Last:{" "}
+                      {CRAWL_METRICS.map(
+                        (metric) => `${metric}=${last.raw_data[metric] ?? "-"}`
+                      ).join(", ")}
                     </span>
                   )}
                 </div>
