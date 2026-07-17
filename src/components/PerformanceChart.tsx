@@ -25,23 +25,26 @@ ChartJS.register(
   Filler
 );
 
-function extractMetrics(): CrawlMetric[] {
-  return [...CRAWL_METRICS];
-}
 
-const COLORS = ["#10b981", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6"];
+const COLORS = ["#22d3ee", "#34d399"];
 
 export default function PerformanceChart({
   snapshots,
   scriptName,
+  compact = false,
 }: {
   snapshots: Snapshot[];
   scriptName: string;
+  compact?: boolean;
 }) {
   if (snapshots.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-lg border border-gray-800 bg-gray-900/50 text-sm text-gray-500">
-        No data yet
+      <div className={`grid place-items-center rounded-2xl border border-dashed border-slate-700 bg-slate-950/35 text-center ${compact ? "min-h-56" : "min-h-72"}`}>
+        <div>
+          <div className="mx-auto mb-3 h-9 w-16 rounded-full border-b-2 border-l-2 border-cyan-400/50" />
+          <p className="text-sm font-semibold text-slate-300">No trend data yet</p>
+          <p className="mt-1 text-xs text-slate-500">Run a crawl to start the timeline.</p>
+        </div>
       </div>
     );
   }
@@ -49,45 +52,88 @@ export default function PerformanceChart({
   const sorted = [...snapshots].sort(
     (a, b) => a.date.localeCompare(b.date)
   );
-  const labels = sorted.map((s) => s.date.slice(5));
-  const metrics = extractMetrics();
-
-  const datasets = metrics.map((metric, i) => ({
-    label: metric,
-    data: sorted.map((s) => s.raw_data[metric] ?? null),
-    borderColor: COLORS[i % COLORS.length],
-    backgroundColor: COLORS[i % COLORS.length] + "22",
+  const labels = sorted.map((snapshot) =>
+    new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(
+      new Date(`${snapshot.date.slice(0, 10)}T00:00:00`)
+    )
+  );
+  const datasets = CRAWL_METRICS.map((metric: CrawlMetric, index) => ({
+    label: metric === "players" ? "Players" : "Servers",
+    data: sorted.map((snapshot) => snapshot.raw_data[metric] ?? null),
+    borderColor: COLORS[index],
+    backgroundColor: `${COLORS[index]}18`,
     fill: true,
-    tension: 0.3,
-    pointRadius: 2,
+    tension: 0.38,
+    pointRadius: sorted.length > 30 ? 0 : 2,
+    pointHoverRadius: 5,
+    pointBackgroundColor: COLORS[index],
+    borderWidth: 2,
+    spanGaps: true,
   }));
 
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900/50 p-6">
-      <h3 className="mb-4 text-sm font-semibold text-gray-300">{scriptName}</h3>
-      <Line
-        data={{ labels, datasets }}
-        options={{
-          responsive: true,
-          plugins: {
-            legend: {
-              position: "top" as const,
-              labels: { color: "#9ca3af", boxWidth: 12, font: { size: 11 } },
+    <div
+      className={`relative rounded-2xl border border-slate-800/80 bg-slate-950/45 p-4 ${compact ? "min-h-56" : "min-h-72"}`}
+      role="img"
+      aria-label={`${scriptName} player and server history chart`}
+    >
+      {!compact && (
+        <div className="mb-4">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Performance history</p>
+          <h3 className="mt-1 font-semibold text-white">{scriptName}</h3>
+        </div>
+      )}
+      <div className={compact ? "h-56" : "h-72"}>
+        <Line
+          data={{ labels, datasets }}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: "index" },
+            plugins: {
+              legend: {
+                align: "start",
+                labels: {
+                  color: "#cbd5e1",
+                  boxWidth: 9,
+                  boxHeight: 9,
+                  usePointStyle: true,
+                  pointStyle: "circle",
+                  padding: 18,
+                  font: { size: 11, weight: 600 },
+                },
+              },
+              tooltip: {
+                backgroundColor: "#0f172a",
+                borderColor: "#334155",
+                borderWidth: 1,
+                titleColor: "#f8fafc",
+                bodyColor: "#cbd5e1",
+                padding: 12,
+                displayColors: true,
+              },
             },
-          },
-          scales: {
-            x: {
-              ticks: { color: "#6b7280", font: { size: 10 } },
-              grid: { color: "#1f2937" },
+            scales: {
+              x: {
+                ticks: { color: "#64748b", font: { size: 10 }, maxTicksLimit: 7 },
+                grid: { display: false },
+                border: { display: false },
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { color: "#64748b", font: { size: 10 }, precision: 0 },
+                grid: { color: "rgba(51,65,85,0.35)" },
+                border: { display: false },
+              },
             },
-            y: {
-              beginAtZero: true,
-              ticks: { color: "#6b7280", font: { size: 10 } },
-              grid: { color: "#1f2937" },
-            },
-          },
-        }}
-      />
+          }}
+        />
+      </div>
+      <p className="sr-only">
+        Latest {scriptName} values: players{" "}
+        {sorted.at(-1)?.raw_data.players ?? "unavailable"}, servers{" "}
+        {sorted.at(-1)?.raw_data.servers ?? "unavailable"}.
+      </p>
     </div>
   );
 }
