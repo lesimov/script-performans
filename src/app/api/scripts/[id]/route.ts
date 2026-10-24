@@ -4,12 +4,13 @@ import { isAllowedScriptUrl, isScriptType, Script } from "@/lib/types";
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!/^[1-9]\d*$/.test(params.id)) {
+  const { id: rawId } = await params;
+  if (!/^[1-9]\d*$/.test(rawId)) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
-  const id = Number(params.id);
+  const id = Number(rawId);
   if (!Number.isSafeInteger(id) || id > 2147483647) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
@@ -28,9 +29,10 @@ export async function DELETE(
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const id = Number(params.id);
+  const { id: rawId } = await params;
+  const id = Number(rawId);
   if (!Number.isInteger(id) || id < 1) {
     return NextResponse.json({ error: "Invalid id" }, { status: 400 });
   }
